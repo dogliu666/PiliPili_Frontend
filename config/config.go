@@ -2,13 +2,27 @@ package config
 
 import (
 	"PiliPili_Frontend/util"
+	"fmt"
 	"github.com/spf13/viper"
+)
+
+// StreamSourceType defines the type of media streaming source.
+type StreamSourceType string
+
+const (
+
+	// StreamSourceBackend represents the backend server as the media source (default).
+	StreamSourceBackend StreamSourceType = "backend"
+
+	// StreamSourceLink represents a direct link as the media source.
+	StreamSourceLink StreamSourceType = "link"
 )
 
 // Config holds all configuration values.
 type Config struct {
 	LogLevel                string               // Log level (e.g., INFO, DEBUG, ERROR)
 	Encipher                string               // Key used for encryption and obfuscation
+	StreamSourceType        StreamSourceType     // Stream source type (default is backend)
 	EmbyURL                 string               // Emby server URL
 	EmbyPort                int                  // Emby server port
 	EmbyAPIKey              string               // API key for Emby server
@@ -45,6 +59,7 @@ func Initialize(configFile string, loglevel string) error {
 		globalConfig = Config{
 			LogLevel:                defaultLogLevel(loglevel),
 			Encipher:                "vPQC5LWCN2CW2opz",
+			StreamSourceType:        "backend",
 			EmbyURL:                 "http://127.0.0.1",
 			EmbyPort:                8096,
 			EmbyAPIKey:              "",
@@ -60,6 +75,7 @@ func Initialize(configFile string, loglevel string) error {
 		globalConfig = Config{
 			LogLevel:                getLogLevel(loglevel),
 			Encipher:                viper.GetString("Encipher"),
+			StreamSourceType:        parseStreamSourceTypeFromValue(viper.GetString("StreamSourceType")),
 			EmbyURL:                 viper.GetString("Emby.url"),
 			EmbyPort:                viper.GetInt("Emby.port"),
 			EmbyAPIKey:              viper.GetString("Emby.apiKey"),
@@ -73,6 +89,31 @@ func Initialize(configFile string, loglevel string) error {
 	}
 
 	return nil
+}
+
+// parseStreamSourceTypeFromValue attempts to parse a StreamSourceType from a generic value.
+// If parsing fails (invalid value, type mismatch, nil, etc.), it returns StreamSourceBackend by default.
+func parseStreamSourceTypeFromValue(v interface{}) StreamSourceType {
+	if v == nil {
+		return StreamSourceBackend
+	}
+
+	var str string
+	switch value := v.(type) {
+	case string:
+		str = value
+	case []byte:
+		str = string(value)
+	default:
+		str = fmt.Sprintf("%v", value)
+	}
+
+	switch StreamSourceType(str) {
+	case StreamSourceLink, StreamSourceBackend:
+		return StreamSourceType(str)
+	default:
+		return StreamSourceBackend
+	}
 }
 
 // loadSpecialMedias parses the SpecialMedias configuration from viper.
@@ -124,4 +165,15 @@ func getLogLevel(loglevel string) string {
 		return loglevel
 	}
 	return viper.GetString("LogLevel")
+}
+
+// GetStreamSourceType returns the valid StreamSourceType from global configuration.
+// If the configured value is invalid or not set, StreamSourceBackend is returned as the default.
+func GetStreamSourceType() StreamSourceType {
+	switch globalConfig.StreamSourceType {
+	case StreamSourceLink, StreamSourceBackend:
+		return globalConfig.StreamSourceType
+	default:
+		return StreamSourceBackend
+	}
 }

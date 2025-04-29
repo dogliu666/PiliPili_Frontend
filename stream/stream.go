@@ -71,6 +71,13 @@ func HandleStreamRequest(c *gin.Context) {
 		return
 	}
 
+	if mediaPath != "" && config.GetStreamSourceType() == config.StreamSourceLink {
+		// Redirect the client to the link streaming URL.
+		logger.Info("Redirecting to link streaming URL: %s", mediaPath)
+		c.Redirect(http.StatusFound, mediaPath)
+		return
+	}
+
 	// Generate and cache the streaming URL.
 	streamingURL, err := generateAndCacheURL(mediaPath, requestParameters)
 	if err != nil {
@@ -80,8 +87,7 @@ func HandleStreamRequest(c *gin.Context) {
 
 	// Redirect the client to the generated streaming URL.
 	logger.Info("Redirecting to streaming URL: %s", streamingURL)
-	c.Header("Location", streamingURL)
-	c.Status(http.StatusFound)
+	c.Redirect(http.StatusFound, streamingURL)
 }
 
 // fetchRequestParameters retrieves parameters from the request or special date configuration.
@@ -285,6 +291,10 @@ func fetchMediaPath(parameters RequestParameters) (string, error) {
 		return "", fmt.Errorf("failed to fetch media path")
 	}
 	logger.Info("Fetched original media path: %s", mediaPath)
+
+	if config.GetStreamSourceType() == config.StreamSourceLink {
+		return mediaPath, nil
+	}
 
 	backendStorageBasePath := config.GetConfig().BackendStorageBasePath
 	frontendSymlinkBasePath := config.GetConfig().FrontendSymlinkBasePath

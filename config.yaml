@@ -4,6 +4,9 @@ LogLevel: "INFO" # Log level (e.g., info, debug, warn, error)
 # Encryption settings
 Encipher: "vPQC5LWCN2CW2opz" # Key used for encryption and obfuscation
 
+# Stream source Type
+StreamSourceType: "backend" # Support link / backend, Default is backend
+
 # Emby server configuration
 Emby:
   url: "http://127.0.0.1" # The base URL for the Emby server
